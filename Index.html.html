@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Shirwal MRF & MCC – Field Reporter</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f0ede8;color:#1a1a18;min-height:100vh}
+.app{max-width:480px;margin:0 auto;padding-bottom:40px}
+
+/* TOPBAR */
+.topbar{background:#fff;border-bottom:0.5px solid rgba(0,0,0,0.12);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+.topbar-left{display:flex;flex-direction:column}
+.topbar-title{font-size:15px;font-weight:600;color:#1a1a18}
+.topbar-sub{font-size:11px;color:#888;margin-top:1px}
+.status-pill{display:flex;align-items:center;gap:5px;font-size:12px;padding:4px 10px;border-radius:20px;border:0.5px solid rgba(0,0,0,0.12);background:#fafafa}
+.dot{width:7px;height:7px;border-radius:50%}
+.dot.online{background:#2d9c6a}.dot.offline{background:#c04e20}
+
+/* TABS */
+.tab-bar{display:flex;background:#fff;border-bottom:0.5px solid rgba(0,0,0,0.12);overflow-x:auto}
+.tab{flex:1;min-width:80px;padding:11px 6px;font-size:12px;font-weight:500;border:none;background:transparent;cursor:pointer;color:#888;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+.tab.active{color:#3c3489;border-bottom-color:#3c3489}
+
+/* SCREENS */
+.screen{display:none;padding:16px}
+.screen.active{display:block}
+
+/* PENDING BANNER */
+.pending-banner{background:#faeeda;border:0.5px solid #fac775;border-radius:10px;padding:10px 14px;font-size:13px;color:#633806;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.sync-btn{background:#ba7517;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer}
+
+/* SECTION LABELS */
+.sec-label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px}
+
+/* ACTIVITY TYPE SELECTOR */
+.activity-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:4px}
+.act-card{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:12px 10px;cursor:pointer;text-align:left;transition:border-color .15s}
+.act-card.selected{border:2px solid #534ab7;background:#f5f4ff}
+.act-card .act-icon{font-size:20px;margin-bottom:5px;display:block}
+.act-card .act-label{font-size:12px;font-weight:600;display:block;color:#1a1a18}
+
+/* FIELD GROUPS */
+.field-group{background:#fff;border-radius:12px;border:0.5px solid rgba(0,0,0,0.12);overflow:hidden;margin-bottom:12px}
+.field-row{padding:0 14px;border-bottom:0.5px solid rgba(0,0,0,0.08)}
+.field-row:last-child{border-bottom:none}
+.field-row label{display:block;font-size:11px;color:#888;padding-top:10px;font-weight:500}
+.field-row input,.field-row select,.field-row textarea{width:100%;border:none;outline:none;font-size:14px;padding:4px 0 10px;background:transparent;color:#1a1a18;font-family:inherit}
+.field-row textarea{resize:none;min-height:70px}
+.field-row select{-webkit-appearance:none;cursor:pointer}
+
+/* CHECKBOXES */
+.check-grid{display:flex;flex-direction:column;gap:0;padding:8px 0}
+.check-item{display:flex;align-items:center;gap:10px;padding:7px 0;cursor:pointer;font-size:13px}
+.check-item input[type=checkbox]{width:16px;height:16px;accent-color:#534ab7;flex-shrink:0;cursor:pointer}
+
+/* RADIO BUTTONS */
+.radio-group{display:flex;gap:7px;padding:10px 0;flex-wrap:wrap}
+.radio-btn{border:0.5px solid rgba(0,0,0,0.25);border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;transition:all .15s;background:#fff;color:#444}
+.radio-btn.selected{background:#eeedfe;border-color:#534ab7;color:#3c3489;font-weight:500}
+
+/* FILE UPLOAD */
+.file-row{padding:10px 14px}
+.file-label-top{font-size:11px;color:#888;font-weight:500;margin-bottom:6px}
+.file-upload-btn{display:flex;align-items:center;gap:8px;border:0.5px dashed rgba(0,0,0,0.25);border-radius:8px;padding:10px 12px;cursor:pointer;font-size:13px;color:#534ab7;background:#f7f6ff}
+.file-upload-btn input{display:none}
+.file-name{font-size:12px;color:#2d9c6a;margin-top:4px}
+
+/* BUTTONS */
+.submit-btn{width:100%;padding:14px;border-radius:12px;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px;transition:opacity .15s}
+.submit-btn.save{background:#534ab7;color:#fff}
+.submit-btn.save:active{opacity:.85}
+
+/* RECORDS */
+.entry-card{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:14px;margin-bottom:10px}
+.entry-type{font-size:11px;font-weight:600;color:#534ab7;text-transform:uppercase;letter-spacing:.04em}
+.entry-title{font-size:14px;font-weight:600;margin:3px 0 6px}
+.entry-meta{font-size:12px;color:#888;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.synced-badge{font-size:11px;padding:2px 8px;border-radius:20px;background:#eaf3de;color:#3b6d11}
+.pending-badge{font-size:11px;padding:2px 8px;border-radius:20px;background:#faeeda;color:#633806}
+.empty-state{text-align:center;padding:50px 20px;color:#888;font-size:14px}
+.empty-icon{font-size:36px;margin-bottom:8px}
+
+/* SETUP */
+.setup-card{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:16px;margin-bottom:12px}
+.setup-card h3{font-size:14px;font-weight:600;margin-bottom:4px}
+.setup-card p{font-size:13px;color:#666;line-height:1.55;margin-bottom:10px}
+.step-tag{font-size:11px;background:#eeedfe;color:#3c3489;padding:2px 8px;border-radius:20px;font-weight:600;margin-bottom:8px;display:inline-block}
+.setup-input{width:100%;border:0.5px solid rgba(0,0,0,0.25);border-radius:8px;padding:10px 12px;font-size:14px;background:#fff;color:#1a1a18;outline:none;font-family:inherit;margin-bottom:8px}
+.setup-input:focus{border-color:#534ab7}
+.save-setup-btn{width:100%;padding:12px;border-radius:8px;border:none;background:#534ab7;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+.script-box{background:#f5f5f0;border-radius:8px;padding:12px;font-family:monospace;font-size:11px;color:#333;white-space:pre-wrap;word-break:break-all;margin-top:8px;max-height:200px;overflow-y:auto;border:0.5px solid rgba(0,0,0,0.12)}
+.copy-btn{width:100%;padding:10px;border-radius:8px;border:0.5px solid rgba(0,0,0,0.2);background:#fff;font-size:13px;font-weight:500;cursor:pointer;margin-top:8px;color:#534ab7}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#2c2c2a;color:#fff;border-radius:8px;padding:10px 18px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:100}
+.toast.show{opacity:1}
+
+/* SECTION FORMS */
+.activity-section{display:none}
+.activity-section.active{display:block}
+
+.required-star{color:#c04e20}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-title">Shirwal MRF & MCC</span>
+      <span class="topbar-sub">Field Activity Reporter</span>
+    </div>
+    <div class="status-pill">
+      <span class="dot online" id="status-dot"></span>
+      <span id="status-label">Online</span>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab('collect')">📝 Report</button>
+    <button class="tab" onclick="switchTab('records')">📋 Records</button>
+    <button class="tab" onclick="switchTab('setup')">⚙️ Setup</button>
+  </div>
+
+  <!-- ============ COLLECT TAB ============ -->
+  <div class="screen active" id="tab-collect">
+
+    <div class="pending-banner" id="pending-banner" style="display:none">
+      <span id="pending-count"></span>
+      <button class="sync-btn" onclick="syncNow()">Sync now</button>
+    </div>
+
+    <!-- Common fields -->
+    <div class="sec-label">Reporting details</div>
+    <div class="field-group">
+      <div class="field-row">
+        <label>Name of reporting person <span class="required-star">*</span></label>
+        <input type="text" id="f-reporter" placeholder="Full name">
+      </div>
+      <div class="field-row">
+        <label>Designation <span class="required-star">*</span></label>
+        <input type="text" id="f-designation" placeholder="e.g. Field Officer">
+      </div>
+      <div class="field-row">
+        <label>Activity date <span class="required-star">*</span></label>
+        <input type="date" id="f-date">
+      </div>
+    </div>
+
+    <!-- Activity type -->
+    <div class="sec-label">Type of reporting <span class="required-star">*</span></div>
+    <div class="activity-grid">
+      <button class="act-card" onclick="selectActivity('training',this)">
+        <span class="act-icon">🎓</span><span class="act-label">Training Program</span>
+      </button>
+      <button class="act-card" onclick="selectActivity('workshop',this)">
+        <span class="act-icon">🏫</span><span class="act-label">Workshop</span>
+      </button>
+      <button class="act-card" onclick="selectActivity('awareness',this)">
+        <span class="act-icon">📢</span><span class="act-label">Awareness Camp</span>
+      </button>
+      <button class="act-card" onclick="selectActivity('health',this)">
+        <span class="act-icon">🏥</span><span class="act-label">Health Camp</span>
+      </button>
+      <button class="act-card" onclick="selectActivity('pltp',this)">
+        <span class="act-icon">👜</span><span class="act-label">PLTP</span>
+      </button>
+      <button class="act-card" onclick="selectActivity('repair',this)">
+        <span class="act-icon">🔧</span><span class="act-label">Repair Camp</span>
+      </button>
+      <button class="act-card" onclick="selectActivity('meeting',this)">
+        <span class="act-icon">🤝</span><span class="act-label">Meeting</span>
+      </button>
+      <button class="act-card" onclick="selectActivity('exposure',this)">
+        <span class="act-icon">🚌</span><span class="act-label">Exposure Visit</span>
+      </button>
+      <button class="act-card" onclick="selectActivity('plasticbank',this)">
+        <span class="act-icon">♻️</span><span class="act-label">Plastic Bank</span>
+      </button>
+      <button class="act-card" onclick="selectActivity('iec',this)">
+        <span class="act-icon">📄</span><span class="act-label">IEC Material</span>
+      </button>
+      <button class="act-card" onclick="selectActivity('documents',this)">
+        <span class="act-icon">📁</span><span class="act-label">Project Documents</span>
+      </button>
+    </div>
+
+    <!-- ===== TRAINING ===== -->
+    <div class="activity-section" id="sec-training">
+      <div class="sec-label">Training Program</div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Purpose / Objective <span class="required-star">*</span></label>
+          <textarea id="tr-objective" placeholder="Describe the purpose..."></textarea>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Type of training <span class="required-star">*</span></label>
+          <div class="check-grid">
+            <label class="check-item"><input type="checkbox" name="tr-type" value="Waste Composting Training"> Waste Composting Training</label>
+            <label class="check-item"><input type="checkbox" name="tr-type" value="Waste Segregation Training"> Waste Segregation Training</label>
+            <label class="check-item"><input type="checkbox" name="tr-type" value="Capacity Building Training"> Capacity Building Training</label>
+            <label class="check-item"><input type="checkbox" name="tr-type" value="Fire & Safety Training"> Fire & Safety Training</label>
+            <label class="check-item"><input type="checkbox" name="tr-type" value="Recycling Training"> Recycling Training</label>
+          </div>
+        </div>
+        <div class="field-row">
+          <label>Other type (if any)</label>
+          <input type="text" id="tr-type-other" placeholder="Specify">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Training for <span class="required-star">*</span></label>
+          <div class="check-grid">
+            <label class="check-item"><input type="checkbox" name="tr-for" value="Villagers"> Villagers</label>
+            <label class="check-item"><input type="checkbox" name="tr-for" value="Safai Sathis"> Safai Sathis</label>
+            <label class="check-item"><input type="checkbox" name="tr-for" value="Educational Institute"> Educational Institute</label>
+            <label class="check-item"><input type="checkbox" name="tr-for" value="SHG"> SHG</label>
+            <label class="check-item"><input type="checkbox" name="tr-for" value="RWA"> RWA</label>
+            <label class="check-item"><input type="checkbox" name="tr-for" value="BWG"> BWG</label>
+            <label class="check-item"><input type="checkbox" name="tr-for" value="Government Officials"> Government Officials</label>
+          </div>
+        </div>
+        <div class="field-row">
+          <label>Other (if any)</label>
+          <input type="text" id="tr-for-other" placeholder="Specify">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Location of training <span class="required-star">*</span></label>
+          <input type="text" id="tr-location" placeholder="Village / venue name">
+        </div>
+        <div class="field-row">
+          <label>Total male participants <span class="required-star">*</span></label>
+          <input type="number" id="tr-male" placeholder="0" inputmode="numeric">
+        </div>
+        <div class="field-row">
+          <label>Total female participants <span class="required-star">*</span></label>
+          <input type="number" id="tr-female" placeholder="0" inputmode="numeric">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="file-row">
+          <div class="file-label-top">Participants list <span class="required-star">*</span></div>
+          <label class="file-upload-btn"><input type="file" id="tr-list" accept="image/*,.pdf" onchange="showFileName(this,'tr-list-name')">📎 Attach file</label>
+          <div class="file-name" id="tr-list-name"></div>
+        </div>
+        <div class="file-row">
+          <div class="file-label-top">Training report <span class="required-star">*</span></div>
+          <label class="file-upload-btn"><input type="file" id="tr-report" accept="image/*,.pdf" onchange="showFileName(this,'tr-report-name')">📎 Attach file</label>
+          <div class="file-name" id="tr-report-name"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== WORKSHOP ===== -->
+    <div class="activity-section" id="sec-workshop">
+      <div class="sec-label">Workshop</div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Purpose / Objective <span class="required-star">*</span></label>
+          <textarea id="ws-objective" placeholder="Describe the purpose..."></textarea>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Workshop for <span class="required-star">*</span></label>
+          <div class="check-grid">
+            <label class="check-item"><input type="checkbox" name="ws-for" value="Villagers"> Villagers</label>
+            <label class="check-item"><input type="checkbox" name="ws-for" value="Safai Sathis"> Safai Sathis</label>
+            <label class="check-item"><input type="checkbox" name="ws-for" value="Educational Institute"> Educational Institute</label>
+            <label class="check-item"><input type="checkbox" name="ws-for" value="SHG"> SHG</label>
+            <label class="check-item"><input type="checkbox" name="ws-for" value="RWA"> RWA</label>
+            <label class="check-item"><input type="checkbox" name="ws-for" value="BWG"> BWG</label>
+            <label class="check-item"><input type="checkbox" name="ws-for" value="Government Officials"> Government Officials</label>
+          </div>
+        </div>
+        <div class="field-row">
+          <label>Other (if any)</label>
+          <input type="text" id="ws-for-other" placeholder="Specify">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Location of workshop <span class="required-star">*</span></label>
+          <input type="text" id="ws-location" placeholder="Venue / village name">
+        </div>
+        <div class="field-row">
+          <label>Total male participants <span class="required-star">*</span></label>
+          <input type="number" id="ws-male" placeholder="0" inputmode="numeric">
+        </div>
+        <div class="field-row">
+          <label>Total female participants <span class="required-star">*</span></label>
+          <input type="number" id="ws-female" placeholder="0" inputmode="numeric">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="file-row">
+          <div class="file-label-top">Participants list <span class="required-star">*</span></div>
+          <label class="file-upload-btn"><input type="file" id="ws-list" accept="image/*,.pdf" onchange="showFileName(this,'ws-list-name')">📎 Attach file</label>
+          <div class="file-name" id="ws-list-name"></div>
+        </div>
+        <div class="file-row">
+          <div class="file-label-top">Workshop report <span class="required-star">*</span></div>
+          <label class="file-upload-btn"><input type="file" id="ws-report" accept="image/*,.pdf" onchange="showFileName(this,'ws-report-name')">📎 Attach file</label>
+          <div class="file-name" id="ws-report-name"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== AWARENESS CAMP ===== -->
+    <div class="activity-section" id="sec-awareness">
+      <div class="sec-label">Awareness Camp</div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Purpose / Objective <span class="required-star">*</span></label>
+          <textarea id="aw-objective" placeholder="Describe the purpose..."></textarea>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Awareness camp for <span class="required-star">*</span></label>
+          <div class="check-grid">
+            <label class="check-item"><input type="checkbox" name="aw-for" value="Villages"> Villages</label>
+            <label class="check-item"><input type="checkbox" name="aw-for" value="SHG"> SHG</label>
+            <label class="check-item"><input type="checkbox" name="aw-for" value="RWA"> RWA</label>
+            <label class="check-item"><input type="checkbox" name="aw-for" value="Educational Institute"> Educational Institute</label>
+            <label class="check-item"><input type="checkbox" name="aw-for" value="Safai Sathis"> Safai Sathis</label>
+            <label class="check-item"><input type="checkbox" name="aw-for" value="Organisation"> Organisation</label>
+            <label class="check-item"><input type="checkbox" name="aw-for" value="Govt Officials"> Govt Officials</label>
+          </div>
+        </div>
+        <div class="field-row">
+          <label>Other (if any)</label>
+          <input type="text" id="aw-for-other" placeholder="Specify">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Type of awareness <span class="required-star">*</span></label>
+          <div class="check-grid">
+            <label class="check-item"><input type="checkbox" name="aw-type" value="Door to Door"> Door to Door</label>
+            <label class="check-item"><input type="checkbox" name="aw-type" value="Rally/Road Show"> Rally / Road Show</label>
+            <label class="check-item"><input type="checkbox" name="aw-type" value="Clean Up Drive / Hotspot Cleaning"> Clean Up Drive / Hotspot Cleaning</label>
+            <label class="check-item"><input type="checkbox" name="aw-type" value="Social Mapping / PRA"> Social Mapping / PRA</label>
+            <label class="check-item"><input type="checkbox" name="aw-type" value="Tree Plantation"> Tree Plantation</label>
+            <label class="check-item"><input type="checkbox" name="aw-type" value="Plogging"> Plogging</label>
+            <label class="check-item"><input type="checkbox" name="aw-type" value="Street Play / Nukkad Natak"> Street Play / Nukkad Natak</label>
+            <label class="check-item"><input type="checkbox" name="aw-type" value="Wall Painting / Spot Painting"> Wall Painting / Spot Painting</label>
+            <label class="check-item"><input type="checkbox" name="aw-type" value="Awards / Competitions"> Awards / Competitions</label>
+          </div>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Location of awareness <span class="required-star">*</span></label>
+          <input type="text" id="aw-location" placeholder="Village / area">
+        </div>
+        <div class="field-row">
+          <label>Number of participants <span class="required-star">*</span></label>
+          <input type="number" id="aw-participants" placeholder="0" inputmode="numeric">
+        </div>
+        <div class="field-row">
+          <label>No. of ACG employees engaged <span class="required-star">*</span></label>
+          <input type="number" id="aw-acg" placeholder="0" inputmode="numeric">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="file-row">
+          <div class="file-label-top">Awareness report <span class="required-star">*</span></div>
+          <label class="file-upload-btn"><input type="file" id="aw-report" accept="image/*,.pdf" onchange="showFileName(this,'aw-report-name')">📎 Attach file</label>
+          <div class="file-name" id="aw-report-name"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== HEALTH CAMP ===== -->
+    <div class="activity-section" id="sec-health">
+      <div class="sec-label">Health Camp</div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Health camp specification <span class="required-star">*</span></label>
+          <textarea id="hc-spec" placeholder="Describe the health camp..."></textarea>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Health camp for <span class="required-star">*</span></label>
+          <div class="check-grid">
+            <label class="check-item"><input type="checkbox" name="hc-for" value="Safai Sathis"> Safai Sathis</label>
+            <label class="check-item"><input type="checkbox" name="hc-for" value="Villagers"> Villagers</label>
+            <label class="check-item"><input type="checkbox" name="hc-for" value="SHG"> SHG</label>
+            <label class="check-item"><input type="checkbox" name="hc-for" value="RWA"> RWA</label>
+          </div>
+        </div>
+        <div class="field-row">
+          <label>Other (if any)</label>
+          <input type="text" id="hc-for-other" placeholder="Specify">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Location of health camp <span class="required-star">*</span></label>
+          <input type="text" id="hc-location" placeholder="Village / venue">
+        </div>
+        <div class="field-row">
+          <label>Total male participants <span class="required-star">*</span></label>
+          <input type="number" id="hc-male" placeholder="0" inputmode="numeric">
+        </div>
+        <div class="field-row">
+          <label>Total female participants <span class="required-star">*</span></label>
+          <input type="number" id="hc-female" placeholder="0" inputmode="numeric">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="file-row">
+          <div class="file-label-top">List of beneficiaries <span class="required-star">*</span></div>
+          <label class="file-upload-btn"><input type="file" id="hc-list" accept="image/*,.pdf" onchange="showFileName(this,'hc-list-name')">📎 Attach file</label>
+          <div class="file-name" id="hc-list-name"></div>
+        </div>
+        <div class="file-row">
+          <div class="file-label-top">Health camp report <span class="required-star">*</span></div>
+          <label class="file-upload-btn"><input type="file" id="hc-report" accept="image/*,.pdf" onchange="showFileName(this,'hc-report-name')">📎 Attach file</label>
+          <div class="file-name" id="hc-report-name"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PLTP ===== -->
+    <div class="activity-section" id="sec-pltp">
+      <div class="sec-label">Plastic Lao Thaila/Mask Pao (PLTP)</div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Location of PLTP <span class="required-star">*</span></label>
+          <input type="text" id="pltp-location" placeholder="Village / area">
+        </div>
+        <div class="field-row">
+          <label>No. of male individuals visited stall <span class="required-star">*</span></label>
+          <input type="number" id="pltp-male" placeholder="0" inputmode="numeric">
+        </div>
+        <div class="field-row">
+          <label>No. of female individuals visited stall <span class="required-star">*</span></label>
+          <input type="number" id="pltp-female" placeholder="0" inputmode="numeric">
+        </div>
+        <div class="field-row">
+          <label>No. of cloth bags distributed <span class="required-star">*</span></label>
+          <input type="number" id="pltp-bags" placeholder="0" inputmode="numeric">
+        </div>
+        <div class="field-row">
+          <label>No. of saplings distributed <span class="required-star">*</span></label>
+          <input type="number" id="pltp-saplings" placeholder="0" inputmode="numeric">
+        </div>
+        <div class="field-row">
+          <label>No. of other material distributed</label>
+          <input type="number" id="pltp-other-count" placeholder="0" inputmode="numeric">
+        </div>
+        <div class="field-row">
+          <label>Plastic collected (kg) <span class="required-star">*</span></label>
+          <input type="number" id="pltp-plastic" placeholder="0.0" inputmode="decimal">
+        </div>
+        <div class="field-row">
+          <label>E-waste collected (kg) <span class="required-star">*</span></label>
+          <input type="number" id="pltp-ewaste" placeholder="0.0" inputmode="decimal">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="file-row">
+          <div class="file-label-top">Upload image of participants list <span class="required-star">*</span></div>
+          <label class="file-upload-btn"><input type="file" id="pltp-img" accept="image/*" onchange="showFileName(this,'pltp-img-name')">📷 Attach image</label>
+          <div class="file-name" id="pltp-img-name"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== REPAIR CAMP ===== -->
+    <div class="activity-section" id="sec-repair">
+      <div class="sec-label">Repair Camp</div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Location of camp <span class="required-star">*</span></label>
+          <input type="text" id="rc-location" placeholder="Village / venue">
+        </div>
+        <div class="field-row">
+          <label>Total beneficiaries</label>
+          <input type="number" id="rc-beneficiaries" placeholder="0" inputmode="numeric">
+        </div>
+        <div class="field-row">
+          <label>Total no. of units repaired</label>
+          <input type="number" id="rc-units" placeholder="0" inputmode="numeric">
+        </div>
+        <div class="field-row">
+          <label>Total value of units repaired (₹)</label>
+          <input type="number" id="rc-value" placeholder="0" inputmode="numeric">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="file-row">
+          <div class="file-label-top">Upload report <span class="required-star">*</span></div>
+          <label class="file-upload-btn"><input type="file" id="rc-report" accept="image/*,.pdf" onchange="showFileName(this,'rc-report-name')">📎 Attach file</label>
+          <div class="file-name" id="rc-report-name"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MEETING ===== -->
+    <div class="activity-section" id="sec-meeting">
+      <div class="sec-label">Meeting</div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Purpose of meeting <span class="required-star">*</span></label>
+          <textarea id="mt-purpose" placeholder="Describe the purpose..."></textarea>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Meeting with <span class="required-star">*</span></label>
+          <div class="check-grid">
+            <label class="check-item"><input type="checkbox" name="mt-with" value="SHG"> SHG</label>
+            <label class="check-item"><input type="checkbox" name="mt-with" value="Safai Sathis"> Safai Sathis</label>
+            <label class="check-item"><input type="checkbox" name="mt-with" value="RWA"> RWA</label>
+            <label class="check-item"><input type="checkbox" name="mt-with" value="BWG"> BWG</label>
+            <label class="check-item"><input type="checkbox" name="mt-with" value="Educational Institute"> Educational Institute</label>
+            <label class="check-item"><input type="checkbox" name="mt-with" value="Sarpanch"> Sarpanch</label>
+            <label class="check-item"><input type="checkbox" name="mt-with" value="Organisation"> Organisation</label>
+            <label class="check-item"><input type="checkbox" name="mt-with" value="Government Officials (Informal)"> Govt Officials (Informal)</label>
+            <label class="check-item"><input type="checkbox" name="mt-with" value="Government Officials (Formal)"> Govt Officials (Formal)</label>
+            <label class="check-item"><input type="checkbox" name="mt-with" value="Villagers/Panchayat (PRI)"> Villagers / Panchayat (PRI)</label>
+          </div>
+        </div>
+        <div class="field-row">
+          <label>Other (if any)</label>
+          <input type="text" id="mt-with-other" placeholder="Specify">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Location of meeting <span class="required-star">*</span></label>
+          <input type="text" id="mt-location" placeholder="Venue / village">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="file-row">
+          <div class="file-label-top">Minutes of meeting <span class="required-star">*</span></div>
+          <label class="file-upload-btn"><input type="file" id="mt-mom" accept="image/*,.pdf" onchange="showFileName(this,'mt-mom-name')">📎 Attach file</label>
+          <div class="file-name" id="mt-mom-name"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== EXPOSURE VISIT ===== -->
+    <div class="activity-section" id="sec-exposure">
+      <div class="sec-label">Exposure Visit</div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Type of visitors <span class="required-star">*</span></label>
+          <div class="check-grid">
+            <label class="check-item"><input type="checkbox" name="ev-type" value="SHG"> SHG</label>
+            <label class="check-item"><input type="checkbox" name="ev-type" value="Recyclers"> Recyclers</label>
+            <label class="check-item"><input type="checkbox" name="ev-type" value="Educational Institute"> Educational Institute</label>
+            <label class="check-item"><input type="checkbox" name="ev-type" value="Government Officials"> Government Officials</label>
+            <label class="check-item"><input type="checkbox" name="ev-type" value="Donor"> Donor</label>
+            <label class="check-item"><input type="checkbox" name="ev-type" value="Villagers"> Villagers</label>
+          </div>
+        </div>
+        <div class="field-row">
+          <label>Other (if any)</label>
+          <input type="text" id="ev-type-other" placeholder="Specify">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Number of participants – male <span class="required-star">*</span></label>
+          <input type="number" id="ev-male" placeholder="0" inputmode="numeric">
+        </div>
+        <div class="field-row">
+          <label>Number of participants – female <span class="required-star">*</span></label>
+          <input type="number" id="ev-female" placeholder="0" inputmode="numeric">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="file-row">
+          <div class="file-label-top">Report <span class="required-star">*</span></div>
+          <label class="file-upload-btn"><input type="file" id="ev-report" accept="image/*,.pdf" onchange="showFileName(this,'ev-report-name')">📎 Attach file</label>
+          <div class="file-name" id="ev-report-name"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PLASTIC BANK ===== -->
+    <div class="activity-section" id="sec-plasticbank">
+      <div class="sec-label">Plastic Bank</div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Location of plastic bank <span class="required-star">*</span></label>
+          <input type="text" id="pb-location" placeholder="Village / area">
+        </div>
+        <div class="field-row">
+          <label>No. of green volunteers – boys <span class="required-star">*</span></label>
+          <input type="number" id="pb-boys" placeholder="0" inputmode="numeric">
+        </div>
+        <div class="field-row">
+          <label>No. of green volunteers – girls <span class="required-star">*</span></label>
+          <input type="number" id="pb-girls" placeholder="0" inputmode="numeric">
+        </div>
+        <div class="field-row">
+          <label>Plastic collected (kg) <span class="required-star">*</span></label>
+          <input type="number" id="pb-plastic" placeholder="0.0" inputmode="decimal">
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== IEC MATERIAL ===== -->
+    <div class="activity-section" id="sec-iec">
+      <div class="sec-label">IEC Material / Knowledge Product</div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Theme / topic of material developed <span class="required-star">*</span></label>
+          <input type="text" id="iec-theme" placeholder="e.g. Plastic Segregation">
+        </div>
+        <div class="field-row">
+          <label>Purpose <span class="required-star">*</span></label>
+          <textarea id="iec-purpose" placeholder="Describe the purpose..."></textarea>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Type of IEC material <span class="required-star">*</span></label>
+          <div class="radio-group" id="iec-type-group">
+            <span class="radio-btn" onclick="selectRadio('iec-type-group',this,'Brochures')">Brochures</span>
+            <span class="radio-btn" onclick="selectRadio('iec-type-group',this,'Leaflets')">Leaflets</span>
+            <span class="radio-btn" onclick="selectRadio('iec-type-group',this,'Banners')">Banners</span>
+            <span class="radio-btn" onclick="selectRadio('iec-type-group',this,'Success Story/Case Study')">Success Story</span>
+            <span class="radio-btn" onclick="selectRadio('iec-type-group',this,'Publication')">Publication</span>
+          </div>
+        </div>
+        <div class="field-row">
+          <label>Other type (if any)</label>
+          <input type="text" id="iec-type-other" placeholder="Specify">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="file-row">
+          <div class="file-label-top">Upload material developed <span class="required-star">*</span></div>
+          <label class="file-upload-btn"><input type="file" id="iec-file" accept="image/*,.pdf" onchange="showFileName(this,'iec-file-name')">📎 Attach file</label>
+          <div class="file-name" id="iec-file-name"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PROJECT DOCUMENTS ===== -->
+    <div class="activity-section" id="sec-documents">
+      <div class="sec-label">Project Documents</div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Description of document <span class="required-star">*</span></label>
+          <textarea id="doc-desc" placeholder="Brief description..."></textarea>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Type of document <span class="required-star">*</span></label>
+          <div class="radio-group" id="doc-type-group">
+            <span class="radio-btn" onclick="selectRadio('doc-type-group',this,'Compliance Certificates')">Compliance Cert.</span>
+            <span class="radio-btn" onclick="selectRadio('doc-type-group',this,'Legal Agreements')">Legal Agreements</span>
+            <span class="radio-btn" onclick="selectRadio('doc-type-group',this,'Purchase Order/Job Order')">PO / JO</span>
+            <span class="radio-btn" onclick="selectRadio('doc-type-group',this,'MOU')">MOU</span>
+          </div>
+        </div>
+        <div class="field-row">
+          <label>Other type (if any)</label>
+          <input type="text" id="doc-type-other" placeholder="Specify">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="file-row">
+          <div class="file-label-top">Upload document <span class="required-star">*</span></div>
+          <label class="file-upload-btn"><input type="file" id="doc-file" accept="image/*,.pdf" onchange="showFileName(this,'doc-file-name')">📎 Attach file</label>
+          <div class="file-name" id="doc-file-name"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REMARK (always visible after selection) -->
+    <div class="activity-section" id="sec-remark">
+      <div class="sec-label">Remark</div>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Remark (if any)</label>
+          <textarea id="f-remark" placeholder="Any additional notes..."></textarea>
+        </div>
+      </div>
+      <button class="submit-btn save" onclick="saveEntry()">Save entry</button>
+    </div>
+
+  </div><!-- end collect -->
+
+  <!-- ============ RECORDS TAB ============ -->
+  <div class="screen" id="tab-records">
+    <div id="records-list">
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        No entries yet. Start reporting activities.
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SETUP TAB ============ -->
+  <div class="screen" id="tab-setup">
+    <div class="setup-card">
+      <span class="step-tag">Step 1</span>
+      <h3>Create your Google Sheet</h3>
+      <p>Create a new Google Sheet. It will auto-receive a new row for each submission with all activity fields in columns.</p>
+    </div>
+    <div class="setup-card">
+      <span class="step-tag">Step 2</span>
+      <h3>Add the Apps Script</h3>
+      <p>In your Sheet go to <strong>Extensions → Apps Script</strong>. Delete existing code, paste the script below, then click <strong>Deploy → New deployment → Web app → Execute as: Me → Who has access: Anyone</strong>.</p>
+      <div class="script-box" id="script-display"></div>
+      <button class="copy-btn" onclick="copyScript()">Copy script to clipboard</button>
+    </div>
+    <div class="setup-card">
+      <span class="step-tag">Step 3</span>
+      <h3>Paste deployment URL here</h3>
+      <p>After deploying, copy the web app URL and paste it below.</p>
+      <input class="setup-input" type="url" id="script-url" placeholder="https://script.google.com/macros/s/...">
+      <button class="save-setup-btn" onclick="saveSetup()">Save and connect</button>
+    </div>
+    <div class="setup-card">
+      <span class="step-tag">Step 4</span>
+      <h3>Install on phone (offline access)</h3>
+      <p><strong>Android:</strong> Open in Chrome → tap ⋮ menu → "Add to Home screen".<br><strong>iPhone:</strong> Open in Safari → tap Share → "Add to Home Screen".<br>The app then works fully offline.</p>
+    </div>
+    <div id="connection-status" style="margin-top:4px"></div>
+  </div>
+
+</div><!-- end app -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SCRIPT = `function doPost(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var data = JSON.parse(e.postData.contents);
+    var sheetName = data.activityType || 'Responses';
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) {
+      sheet = ss.insertSheet(sheetName);
+    }
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(Object.keys(data));
+    }
+    sheet.appendRow(Object.values(data));
+    return ContentService
+      .createTextOutput(JSON.stringify({status:'ok'}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({status:'error', message: err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+
+let currentActivity = null;
+let entries = [];
+let scriptUrl = '';
+let isOnline = navigator.onLine;
+
+try { entries = JSON.parse(localStorage.getItem('shirwal_entries') || '[]'); } catch(e){}
+try { scriptUrl = localStorage.getItem('shirwal_script_url') || ''; } catch(e){}
+
+document.getElementById('script-display').textContent = SCRIPT;
+if (scriptUrl) document.getElementById('script-url').value = scriptUrl;
+
+function setToday() {
+  const t = new Date().toISOString().split('T')[0];
+  document.getElementById('f-date').value = t;
+}
+
+function updateStatus() {
+  isOnline = navigator.onLine;
+  document.getElementById('status-dot').className = 'dot ' + (isOnline ? 'online' : 'offline');
+  document.getElementById('status-label').textContent = isOnline ? 'Online' : 'Offline';
+}
+
+function updatePendingBanner() {
+  const p = entries.filter(e => !e.synced).length;
+  const b = document.getElementById('pending-banner');
+  if (p > 0) {
+    b.style.display = 'flex';
+    document.getElementById('pending-count').textContent = p + ' entr' + (p===1?'y':'ies') + ' pending sync';
+  } else { b.style.display = 'none'; }
+}
+
+function selectActivity(type, el) {
+  currentActivity = type;
+  document.querySelectorAll('.act-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.querySelectorAll('.activity-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + type).classList.add('active');
+  document.getElementById('sec-remark').classList.add('active');
+  setTimeout(() => document.getElementById('sec-' + type).scrollIntoView({behavior:'smooth', block:'start'}), 100);
+}
+
+function selectRadio(groupId, el, value) {
+  document.querySelectorAll('#' + groupId + ' .radio-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  el.dataset.value = value;
+}
+
+function getRadioValue(groupId) {
+  const s = document.querySelector('#' + groupId + ' .radio-btn.selected');
+  return s ? (s.dataset.value || s.textContent.trim()) : '';
+}
+
+function getChecked(name) {
+  return Array.from(document.querySelectorAll('input[name="'+name+'"]:checked')).map(i => i.value).join(', ');
+}
+
+function showFileName(input, nameId) {
+  const el = document.getElementById(nameId);
+  if (input.files && input.files[0]) el.textContent = '✓ ' + input.files[0].name;
+  else el.textContent = '';
+}
+
+function buildEntry() {
+  const base = {
+    id: Date.now(),
+    timestamp: new Date().toISOString(),
+    synced: false,
+    activityType: currentActivity,
+    reporterName: document.getElementById('f-reporter').value,
+    designation: document.getElementById('f-designation').value,
+    activityDate: document.getElementById('f-date').value,
+    remark: document.getElementById('f-remark').value,
+    fileNote: '(Files stored on device — attach manually to sheet)'
+  };
+
+  const a = currentActivity;
+  if (a === 'training') return {...base,
+    objective: document.getElementById('tr-objective').value,
+    trainingType: getChecked('tr-type') + (document.getElementById('tr-type-other').value ? ', '+document.getElementById('tr-type-other').value : ''),
+    trainingFor: getChecked('tr-for') + (document.getElementById('tr-for-other').value ? ', '+document.getElementById('tr-for-other').value : ''),
+    location: document.getElementById('tr-location').value,
+    malePax: document.getElementById('tr-male').value,
+    femalePax: document.getElementById('tr-female').value,
+    totalPax: (+document.getElementById('tr-male').value||0) + (+document.getElementById('tr-female').value||0)
+  };
+  if (a === 'workshop') return {...base,
+    objective: document.getElementById('ws-objective').value,
+    workshopFor: getChecked('ws-for') + (document.getElementById('ws-for-other').value ? ', '+document.getElementById('ws-for-other').value : ''),
+    location: document.getElementById('ws-location').value,
+    malePax: document.getElementById('ws-male').value,
+    femalePax: document.getElementById('ws-female').value,
+    totalPax: (+document.getElementById('ws-male').value||0) + (+document.getElementById('ws-female').value||0)
+  };
+  if (a === 'awareness') return {...base,
+    objective: document.getElementById('aw-objective').value,
+    awarenessFor: getChecked('aw-for') + (document.getElementById('aw-for-other').value ? ', '+document.getElementById('aw-for-other').value : ''),
+    awarenessType: getChecked('aw-type'),
+    location: document.getElementById('aw-location').value,
+    totalPax: document.getElementById('aw-participants').value,
+    acgEmployees: document.getElementById('aw-acg').value
+  };
+  if (a === 'health') return {...base,
+    specification: document.getElementById('hc-spec').value,
+    healthCampFor: getChecked('hc-for') + (document.getElementById('hc-for-other').value ? ', '+document.getElementById('hc-for-other').value : ''),
+    location: document.getElementById('hc-location').value,
+    malePax: document.getElementById('hc-male').value,
+    femalePax: document.getElementById('hc-female').value,
+    totalPax: (+document.getElementById('hc-male').value||0) + (+document.getElementById('hc-female').value||0)
+  };
+  if (a === 'pltp') return {...base,
+    location: document.getElementById('pltp-location').value,
+    maleVisitors: document.getElementById('pltp-male').value,
+    femaleVisitors: document.getElementById('pltp-female').value,
+    clothBagsDistributed: document.getElementById('pltp-bags').value,
+    saplingsDistributed: document.getElementById('pltp-saplings').value,
+    otherMaterialCount: document.getElementById('pltp-other-count').value,
+    plasticKg: document.getElementById('pltp-plastic').value,
+    ewasteKg: document.getElementById('pltp-ewaste').value
+  };
+  if (a === 'repair') return {...base,
+    location: document.getElementById('rc-location').value,
+    totalBeneficiaries: document.getElementById('rc-beneficiaries').value,
+    unitsRepaired: document.getElementById('rc-units').value,
+    valueRepaired: document.getElementById('rc-value').value
+  };
+  if (a === 'meeting') return {...base,
+    purpose: document.getElementById('mt-purpose').value,
+    meetingWith: getChecked('mt-with') + (document.getElementById('mt-with-other').value ? ', '+document.getElementById('mt-with-other').value : ''),
+    location: document.getElementById('mt-location').value
+  };
+  if (a === 'exposure') return {...base,
+    visitorType: getChecked('ev-type') + (document.getElementById('ev-type-other').value ? ', '+document.getElementById('ev-type-other').value : ''),
+    malePax: document.getElementById('ev-male').value,
+    femalePax: document.getElementById('ev-female').value,
+    totalPax: (+document.getElementById('ev-male').value||0) + (+document.getElementById('ev-female').value||0)
+  };
+  if (a === 'plasticbank') return {...base,
+    location: document.getElementById('pb-location').value,
+    volunteerBoys: document.getElementById('pb-boys').value,
+    volunteerGirls: document.getElementById('pb-girls').value,
+    plasticKg: document.getElementById('pb-plastic').value
+  };
+  if (a === 'iec') return {...base,
+    theme: document.getElementById('iec-theme').value,
+    purpose: document.getElementById('iec-purpose').value,
+    iecType: getRadioValue('iec-type-group') || document.getElementById('iec-type-other').value
+  };
+  if (a === 'documents') return {...base,
+    description: document.getElementById('doc-desc').value,
+    docType: getRadioValue('doc-type-group') || document.getElementById('doc-type-other').value
+  };
+  return base;
+}
+
+function saveEntry() {
+  if (!currentActivity) { showToast('Please select an activity type'); return; }
+  const reporter = document.getElementById('f-reporter').value.trim();
+  const date = document.getElementById('f-date').value;
+  if (!reporter) { showToast('Please enter your name'); return; }
+  if (!date) { showToast('Please select activity date'); return; }
+
+  const entry = buildEntry();
+  entries.unshift(entry);
+  try { localStorage.setItem('shirwal_entries', JSON.stringify(entries)); } catch(e){}
+  showToast('Entry saved' + (isOnline && scriptUrl ? '' : ' — will sync when online'));
+  updatePendingBanner();
+  renderRecords();
+  if (isOnline && scriptUrl) syncNow();
+}
+
+function syncNow() {
+  if (!scriptUrl) { showToast('Add your Apps Script URL in Setup tab'); return; }
+  const pending = entries.filter(e => !e.synced);
+  if (!pending.length) { showToast('All entries already synced'); return; }
+  showToast('Syncing ' + pending.length + ' entr' + (pending.length===1?'y':'ies') + '...');
+  let done = 0, failed = 0;
+  pending.forEach(entry => {
+    fetch(scriptUrl, {
+      method: 'POST',
+      body: JSON.stringify(entry),
+      headers: {'Content-Type': 'application/json'}
+    }).then(r => r.json()).then(res => {
+      if (res.status === 'ok') { entry.synced = true; done++; }
+      else failed++;
+      if (done + failed === pending.length) {
+        try { localStorage.setItem('shirwal_entries', JSON.stringify(entries)); } catch(e){}
+        renderRecords(); updatePendingBanner();
+        showToast(done + ' synced to Google Sheets' + (failed ? ', ' + failed + ' failed' : ' ✓'));
+      }
+    }).catch(() => {
+      failed++;
+      if (done + failed === pending.length) showToast('Sync failed — check URL in Setup');
+    });
+  });
+}
+
+const activityLabels = {
+  training:'Training Program', workshop:'Workshop', awareness:'Awareness Camp',
+  health:'Health Camp', pltp:'PLTP', repair:'Repair Camp', meeting:'Meeting',
+  exposure:'Exposure Visit', plasticbank:'Plastic Bank', iec:'IEC Material', documents:'Project Documents'
+};
+
+function renderRecords() {
+  const list = document.getElementById('records-list');
+  if (!entries.length) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div>No entries yet.</div>';
+    return;
+  }
+  list.innerHTML = entries.map(e => {
+    const d = new Date(e.timestamp);
+    const time = d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}) + ', ' + d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    const badge = e.synced ? '<span class="synced-badge">Synced ✓</span>' : '<span class="pending-badge">Pending</span>';
+    const label = activityLabels[e.activityType] || e.activityType;
+    const loc = e.location ? ' · ' + e.location : '';
+    const pax = e.totalPax ? ' · ' + e.totalPax + ' participants' : '';
+    return `<div class="entry-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div>
+          <div class="entry-type">${label}</div>
+          <div class="entry-title">${e.reporterName || 'Unknown'}${loc}</div>
+        </div>${badge}
+      </div>
+      <div class="entry-meta"><span>${time}</span>${pax ? '<span>'+pax.replace(' · ','')+'</span>' : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', ['collect','records','setup'][i] === tab);
+  });
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'records') renderRecords();
+}
+
+function saveSetup() {
+  const url = document.getElementById('script-url').value.trim();
+  if (!url.startsWith('https://script.google.com')) { showToast('Enter a valid Apps Script URL'); return; }
+  scriptUrl = url;
+  try { localStorage.setItem('shirwal_script_url', url); } catch(e){}
+  showToast('Connected ✓');
+}
+
+function copyScript() {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(SCRIPT).then(() => showToast('Script copied to clipboard'));
+  } else {
+    showToast('Copy the script from the box above');
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+window.addEventListener('online', () => { updateStatus(); if (scriptUrl) syncNow(); });
+window.addEventListener('offline', updateStatus);
+setToday(); updateStatus(); updatePendingBanner();
+</script>
+</body>
+</html>
